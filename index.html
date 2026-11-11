@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>星萃工坊：精品咖啡廳經營模擬 (Café Artisan Tycoon)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .font-brand {
+      font-family: 'Cinzel', 'Noto Sans TC', serif;
+    }
+    /* 自訂滾動條 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1c140e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #543d2b;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #78583e;
+    }
+    /* 點擊浮動跳動字體 */
+    @keyframes floatUpFade {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(0.9);
+      }
+      50% {
+        transform: translateY(-28px) scale(1.15);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-55px) scale(1);
+      }
+    }
+    .float-text {
+      position: absolute;
+      pointer-events: none;
+      font-weight: 800;
+      color: #f6c87e;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      animation: floatUpFade 0.85s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      z-index: 50;
+    }
+    /* 咖啡蒸氣動畫 */
+    @keyframes steam {
+      0% { transform: translateY(0) scaleX(1); opacity: 0; }
+      25% { opacity: 0.6; }
+      50% { transform: translateY(-16px) scaleX(1.3) rotate(6deg); }
+      75% { opacity: 0.3; }
+      100% { transform: translateY(-32px) scaleX(1.8) rotate(-6deg); opacity: 0; }
+    }
+    .steam-1 { animation: steam 2.4s infinite ease-in; }
+    .steam-2 { animation: steam 2.8s 0.6s infinite ease-in; }
+    .steam-3 { animation: steam 2.2s 1.2s infinite ease-in; }
+
+    /* 按鈕脈衝呼吸 */
+    @keyframes softPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    .pulse-brew {
+      animation: softPulse 3s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-[#120d09] text-[#e8ded5] min-h-screen flex flex-col antialiased selection:bg-[#c28e5c] selection:text-white">
+
+  <!-- 頂部導航 / 招牌標頭 -->
+  <header class="bg-[#1e1510] border-b border-[#3b2a1d] px-4 py-3 sticky top-0 z-40 shadow-xl backdrop-blur-md bg-opacity-95">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c28e5c] to-[#6a4224] flex items-center justify-center shadow-lg text-2xl shadow-[#c28e5c]/20">
+          ☕
+        </div>
+        <div>
+          <h1 class="font-brand font-bold text-lg md:text-xl text-[#f3cf9f] tracking-wide flex items-center gap-2">
+            星萃工坊 <span class="text-xs px-2 py-0.5 rounded-full bg-[#362417] text-[#deb280] border border-[#523824]">Lv.<span id="shop-level">1</span> <span id="shop-title">街角手沖攤</span></span>
+          </h1>
+          <div class="text-xs text-[#a39081]">精品咖啡經營模擬器 (Café Tycoon)</div>
+        </div>
+      </div>
+
+      <!-- 快捷存檔與控制 -->
+      <div class="flex items-center space-x-2">
+        <button id="btn-save" class="px-3 py-1.5 rounded-lg bg-[#2b1e15] hover:bg-[#3b2a1d] text-xs font-medium text-[#cbb5a1] border border-[#4d3624] transition flex items-center gap-1.5 active:scale-95">
+          <span>💾</span> <span>保存進度</span>
+        </button>
+        <button id="btn-reset" class="px-3 py-1.5 rounded-lg bg-[#2b1e15] hover:bg-rose-950/60 text-xs font-medium text-rose-300 border border-rose-900/40 transition flex items-center gap-1.5 active:scale-95">
+          <span>🔄</span> <span>重置</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主內容容器 -->
+  <main class="max-w-7xl mx-auto p-3 md:p-6 w-full flex-1 flex flex-col gap-6">
+
+    <!-- 1. 核心指標看板 (HUD) -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <!-- 總資產 -->
+      <div class="bg-gradient-to-br from-[#241912] to-[#1c130d] border border-[#473322] rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div class="flex items-center justify-between text-[#a39081] text-xs">
+          <span>營業資金 (Capital)</span>
+          <span class="text-base">💰</span>
+        </div>
+        <div class="mt-2 text-2xl md:text-3xl font-black text-[#f8d488] tracking-tight font-brand" id="money-stat">$0</div>
+        <div class="text-[11px] text-[#8e7a6d] mt-1 flex items-center gap-1">
+          <span>累計營收:</span> <span id="total-earned">$0</span>
+        </div>
+      </div>
+
+      <!-- 每秒自動營收 CPS -->
+      <div class="bg-gradient-to-br from-[#241912] to-[#1c130d] border border-[#473322] rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div class="flex items-center justify-between text-[#a39081] text-xs">
+          <span>每秒產出 (CPS)</span>
+          <span class="text-base">⏱️</span>
+        </div>
+        <div class="mt-2 text-2xl md:text-3xl font-black text-[#85e0a3] tracking-tight font-brand" id="cps-stat">+$0/s</div>
+        <div class="text-[11px] text-[#8e7a6d] mt-1">
+          單次萃取: <span id="cpc-stat" class="text-[#d8b589]">+$1</span>
+        </div>
+      </div>
+
+      <!-- 品牌知名度 -->
+      <div class="bg-gradient-to-br from-[#241912] to-[#1c130d] border border-[#473322] rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div class="flex items-center justify-between text-[#a39081] text-xs">
+          <span>知名度與名聲</span>
+          <span class="text-base">✨</span>
+        </div>
+        <div class="mt-2 text-2xl md:text-3xl font-black text-[#7cc4fa] tracking-tight font-brand flex items-center gap-2">
+          <span id="fame-stat">10</span> <span class="text-xs px-2 py-0.5 rounded bg-[#1e2f3d] text-[#93c5fd] border border-[#2b4c68]">倍率 x<span id="fame-mult">1.0</span></span>
+        </div>
+        <div class="w-full bg-[#312217] rounded-full h-1.5 mt-2 overflow-hidden">
+          <div id="fame-bar" class="bg-gradient-to-r from-blue-500 to-indigo-400 h-1.5 rounded-full transition-all duration-300" style="width: 20%"></div>
+        </div>
+      </div>
+
+      <!-- 顧客滿意度 -->
+      <div class="bg-gradient-to-br from-[#241912] to-[#1c130d] border border-[#473322] rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div class="flex items-center justify-between text-[#a39081] text-xs">
+          <span>顧客好評率</span>
+          <span class="text-base">⭐</span>
+        </div>
+        <div class="mt-2 text-2xl md:text-3xl font-black text-[#fbcfe8] tracking-tight font-brand flex items-center gap-1">
+          <span id="satisfaction-stat">98.5</span><span class="text-lg text-rose-300">%</span>
+        </div>
+        <div class="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
+          <span>● 全店營收加成: </span> <span id="buff-indicator" class="font-bold">+0%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 隨機突發事件橫幅 (動態提示) -->
+    <div id="event-banner" class="hidden relative overflow-hidden bg-gradient-to-r from-amber-950 via-[#3a2012] to-amber-950 border border-amber-600/50 rounded-2xl p-4 text-amber-100 shadow-xl transition-all duration-300">
+      <div class="flex items-start md:items-center justify-between gap-3">
+        <div class="flex items-center space-x-3">
+          <div class="text-3xl p-2 bg-amber-900/60 rounded-xl border border-amber-600/40" id="event-icon">📢</div>
+          <div>
+            <div class="font-bold text-sm md:text-base text-amber-300 flex items-center gap-2">
+              <span id="event-title">突發活動</span>
+              <span id="event-timer" class="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-mono border border-amber-500/40">30s</span>
+            </div>
+            <p class="text-xs md:text-sm text-amber-200/90 mt-0.5" id="event-desc">活動說明描述。</p>
+          </div>
+        </div>
+        <button id="event-action-btn" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 text-xs md:text-sm font-bold rounded-xl shadow-lg transition transform active:scale-95 shrink-0">
+          把握商機
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. 主操作與分頁面板佈局 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- 左側：萃取點擊工作台 (佔比 4/12) -->
+      <section class="lg:col-span-5 flex flex-col gap-4">
+        
+        <!-- 咖啡吧檯互動卡片 -->
+        <div class="bg-gradient-to-b from-[#251a13] to-[#18110b] border border-[#422e1e] rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-between relative overflow-hidden min-h-[420px]">
+          
+          <!-- 頂部提示 -->
+          <div class="w-full flex justify-between items-center text-xs text-[#a99587]">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span>吧檯熱機完畢</span>
+            </div>
+            <span class="bg-[#332216] px-2.5 py-1 rounded-full text-[#dab992] border border-[#523722]" id="current-drink-name">濃縮咖啡</span>
+          </div>
+
+          <!-- 視覺咖啡杯與蒸氣互動區 -->
+          <div class="relative my-auto flex flex-col items-center justify-center">
+            
+            <!-- 咖啡蒸氣 -->
+            <div class="flex space-x-3 mb-2 h-8">
+              <span class="w-1.5 h-6 bg-gradient-to-t from-white/30 to-transparent rounded-full steam-1 blur-[1px]"></span>
+              <span class="w-2 h-8 bg-gradient-to-t from-white/40 to-transparent rounded-full steam-2 blur-[1px]"></span>
+              <span class="w-1.5 h-6 bg-gradient-to-t from-white/30 to-transparent rounded-full steam-3 blur-[1px]"></span>
+            </div>
+
+            <!-- 主萃取大按鈕 -->
+            <button id="coffee-brew-btn" class="pulse-brew group relative w-44 h-44 md:w-52 md:h-52 rounded-full bg-gradient-to-b from-[#3d2719] via-[#2a1a11] to-[#190f09] border-4 border-[#6b482b] hover:border-[#cf9a66] flex flex-col items-center justify-center shadow-2xl shadow-[#c28e5c]/10 active:scale-95 transition-all duration-100 cursor-pointer focus:outline-none">
+              
+              <!-- 杯身 SVG -->
+              <svg class="w-24 h-24 md:w-28 md:h-28 text-[#d8ab7b] group-hover:scale-105 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                <line x1="6" y1="1" x2="6" y2="4"></line>
+                <line x1="10" y1="1" x2="10" y2="4"></line>
+                <line x1="14" y1="1" x2="14" y2="4"></line>
+              </svg>
+
+              <span class="mt-2 text-xs md:text-sm font-bold tracking-wider text-[#edd0ab] group-hover:text-white uppercase font-brand">
+                點擊手沖萃取
+              </span>
+              <span class="text-[10px] text-[#9a7d65] mt-0.5">每次點擊收益</span>
+            </button>
+
+            <!-- 浮動文字掛載點 -->
+            <div id="float-container" class="absolute inset-0 pointer-events-none flex items-center justify-center"></div>
+          </div>
+
+          <!-- 底部顧客接待計數 -->
+          <div class="w-full bg-[#1b120c] rounded-xl p-3 border border-[#3b2719] flex justify-between items-center text-xs">
+            <span class="text-[#968273]">手動沖煮次數</span>
+            <span class="font-mono font-bold text-[#deb583]" id="click-count">0 次</span>
+          </div>
+        </div>
+
+        <!-- 即時營運日誌 (Log) -->
+        <div class="bg-[#1b130e] border border-[#3a271a] rounded-2xl p-4 shadow-md flex flex-col h-44">
+          <div class="flex items-center justify-between border-b border-[#312015] pb-2 mb-2 text-xs text-[#baa797]">
+            <span class="font-bold flex items-center gap-1.5">
+              <span>📋</span> 營業動態紀錄
+            </span>
+            <span class="text-[10px] text-[#715c4d]">即時廣播</span>
+          </div>
+          <div class="overflow-y-auto space-y-1.5 pr-1 flex-1 text-[11px]" id="logs-container">
+            <div class="text-[#a48e7e]"><span class="text-[#645041]">[開幕]</span> 歡迎蒞臨星萃工坊，今天起開始書寫你的咖啡傳奇！</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右側：功能升級與管理選單 (佔比 7/12) -->
+      <section class="lg:col-span-7 flex flex-col bg-[#1e150f] border border-[#3b2719] rounded-3xl p-4 md:p-6 shadow-xl">
+        
+        <!-- 分頁切換器 -->
+        <div class="flex items-center space-x-1 sm:space-x-2 border-b border-[#382619] pb-3 mb-4 overflow-x-auto">
+          <button class="tab-btn active px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold transition flex items-center gap-1.5 whitespace-nowrap bg-[#c28e5c] text-stone-950" data-tab="tab-staff">
+            <span>⚙️</span> 設備與人事 (<span id="staff-badge">0</span>)
+          </button>
+          <button class="tab-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-semibold transition flex items-center gap-1.5 whitespace-nowrap text-[#ab9787] hover:bg-[#2b1c13]" data-tab="tab-menu">
+            <span>📜</span> 特調品項
+          </button>
+          <button class="tab-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-semibold transition flex items-center gap-1.5 whitespace-nowrap text-[#ab9787] hover:bg-[#2b1c13]" data-tab="tab-decor">
+            <span>🛋️</span> 店鋪裝潢
+          </button>
+          <button class="tab-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-semibold transition flex items-center gap-1.5 whitespace-nowrap text-[#ab9787] hover:bg-[#2b1c13]" data-tab="tab-achievements">
+            <span>🏆</span> 成就獎章
+          </button>
+        </div>
+
+        <!-- 分頁內容區域 -->
+        <div class="flex-1 overflow-y-auto max-h-[560px] pr-1">
+
+          <!-- 1. 設備與人事 (自動化產出設施) -->
+          <div id="tab-staff" class="tab-pane space-y-3">
+            <p class="text-xs text-[#a38e7e] mb-2">購買自動設備與招募資深夥伴，即使不點擊也能持續創造可觀的每秒營收 (CPS)。</p>
+            <div id="facilities-list" class="space-y-2.5">
+              <!-- 動態生成設備列表 -->
+            </div>
+          </div>
+
+          <!-- 2. 特調品項菜單 (升級點擊價值) -->
+          <div id="tab-menu" class="tab-pane hidden space-y-3">
+            <p class="text-xs text-[#a38e7e] mb-2">研發風味更加卓越的精品咖啡品項，大幅提升每一次手動沖煮萃取的利潤。</p>
+            <div id="menu-list" class="space-y-2.5">
+              <!-- 動態生成菜單列表 -->
+            </div>
+          </div>
+
+          <!-- 3. 店鋪裝潢風格 (知名度與被動倍率) -->
+          <div id="tab-decor" class="tab-pane hidden space-y-3">
+            <p class="text-xs text-[#a38e7e] mb-2">改善內用環境、添購精品器具與藝術燈飾，提高顧客滿意度與品牌溢價倍率。</p>
+            <div id="decor-list" class="space-y-2.5">
+              <!-- 動態生成裝潢列表 -->
+            </div>
+          </div>
+
+          <!-- 4. 成就與里程碑 -->
+          <div id="tab-achievements" class="tab-pane hidden space-y-3">
+            <p class="text-xs text-[#a38e7e] mb-2">達成營運里程碑即可獲得專屬稱號與永久營收加成獎勵。</p>
+            <div id="achievements-list" class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <!-- 動態生成成就卡片 -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 離線收益彈出 Modal -->
+  <div id="welcome-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#241710] border border-[#5a3a22] rounded-3xl p-6 max-w-md w-full shadow-2xl text-center transform transition-all scale-100">
+      <div class="w-16 h-16 bg-[#3e2415] rounded-2xl flex items-center justify-center mx-auto text-3xl border border-[#784c2a] shadow-inner">
+        🌙
+      </div>
+      <h3 class="text-xl font-bold font-brand text-[#f4cf9e] mt-4">歡迎回到店裡！</h3>
+      <p class="text-xs text-[#af9b8b] mt-1">在你離開休息的這段期間，店裡的夥伴依然熱情地為熟客們沖煮咖啡。</p>
+      
+      <div class="my-5 bg-[#170e0a] rounded-2xl p-4 border border-[#3b2516]">
+        <div class="text-xs text-[#8c7666]">離線累計時長: <span id="offline-time" class="text-[#deb788] font-mono">00:00:00</span></div>
+        <div class="text-2xl font-black text-[#85e0a3] mt-1 font-brand" id="offline-earnings">+$0</div>
+        <div class="text-[11px] text-[#715c4c] mt-0.5">（已根據店員效率自動結算）</div>
+      </div>
+
+      <button id="claim-offline-btn" class="w-full py-3 bg-gradient-to-r from-[#c28e5c] to-[#a36b3b] hover:from-[#d39f6d] hover:to-[#b67a48] text-stone-950 font-bold rounded-xl shadow-lg transition active:scale-95 text-sm">
+        喜提營收並開門營業
+      </button>
+    </div>
+  </div>
+
+  <!-- 底部版權 -->
+  <footer class="text-center py-3 text-xs text-[#6e5848] border-t border-[#291b12]">
+    星萃工坊 Café Artisan Tycoon &bull; 打造屬於你的頂級精品咖啡帝國
+  </footer>
+
+  <!-- 遊戲完整邏輯腳本 -->
+  <script>
+    /**
+     * 遊戲核心數據庫與狀態管理
+     */
+    const SAVE_KEY = 'CAFE_TYCOON_SAVE_V1';
+
+    // 設施清單 (產生 CPS)
+    const FACILITIES_DATA = [
+      { id: 'grinder', name: '手搖精密磨豆機', desc: '細緻均勻的粉度，讓萃取更加順暢。', baseCost: 15, baseCps: 0.5, icon: '⚙️', count: 0 },
+      { id: 'part_time', name: '打工大學生', desc: '負責結帳出杯與基本清潔，分擔吧檯壓力。', baseCost: 100, baseCps: 4, icon: '🧑‍🎓', count: 0 },
+      { id: 'espresso_machine', name: '商用雙孔義式機', desc: '穩定9 bar壓力，快速萃取飽滿Crema。', baseCost: 1100, baseCps: 32, icon: '🎛️', count: 0 },
+      { id: 'barista', name: '資深拉花咖啡師', desc: '精準拿捏奶泡溫度與對流，端出冠軍級拿鐵。', baseCost: 12000, baseCps: 260, icon: '👨‍🍳', count: 0 },
+      { id: 'cold_drip_tower', name: '冰滴萃取琉璃塔', desc: '以冷水一滴一滴冷萃8小時的黑金瓊漿。', baseCost: 130000, baseCps: 1400, icon: '⏳', count: 0 },
+      { id: 'roaster', name: '德國熱風直火烘豆機', desc: '精確烘焙頂級生豆，批發給周邊知名餐廳。', baseCost: 1400000, baseCps: 7800, icon: '🔥', count: 0 },
+      { id: 'farm_contract', name: '藝妓莊園契作權', desc: '直接與巴拿馬波奎特莊園簽訂產地獨家採收合約。', baseCost: 20000000, baseCps: 44000, icon: '🌱', count: 0 }
+    ];
+
+    // 特調品項 (提升點擊收益 CPC)
+    const MENU_DATA = [
+      { id: 'espresso', name: '義式濃縮 (Espresso)', cost: 0, clickPower: 1, unlocked: true, icon: '☕', note: '濃烈醇厚，最純粹的經典。' },
+      { id: 'latte', name: '絲絨燕麥拿鐵', cost: 150, clickPower: 5, unlocked: false, icon: '🥛', note: '綿密奶泡與焦糖堅果尾韻。' },
+      { id: 'pour_over', name: '淺焙花香手沖精品', cost: 1200, clickPower: 25, unlocked: false, icon: '🫖', note: '散發茉莉花與柑橘清甜風味。' },
+      { id: 'cold_brew', name: '波本桶陳冷萃咖啡', cost: 10000, clickPower: 120, unlocked: false, icon: '🥃', note: '於威士忌橡木桶熟成，香氣馥郁。' },
+      { id: 'geisha', name: '翡翠莊園紅標藝妓', cost: 85000, clickPower: 650, unlocked: false, icon: '👑', note: '被譽為上帝杯中之吻的頂級傳奇豆。' }
+    ];
+
+    // 店鋪裝潢 (增加知名度 Fame 與全域乘數)
+    const DECOR_DATA = [
+      { id: 'wooden_bar', name: '北美胡桃木長吧檯', cost: 500, fameBonus: 5, multiplier: 0.1, purchased: false, icon: '🪵' },
+      { id: 'warm_light', name: '溫暖愛迪生復古吊燈', cost: 3500, fameBonus: 15, multiplier: 0.15, purchased: false, icon: '💡' },
+      { id: 'marshall_speaker', name: '黑膠唱機與發燒音響', cost: 25000, fameBonus: 35, multiplier: 0.25, purchased: false, icon: '📻' },
+      { id: 'patio_plants', name: '日式禪風綠植庭院', cost: 180000, fameBonus: 80, multiplier: 0.35, purchased: false, icon: '🌿' },
+      { id: 'michelin_cert', name: '國際精品咖啡評鑑三星標章', cost: 1500000, fameBonus: 200, multiplier: 0.6, purchased: false, icon: '🎖️' }
+    ];
+
+    // 成就清單
+    const ACHIEVEMENTS_DATA = [
+      { id: 'click_10', title: '咖啡學徒', desc: '手動點擊沖煮 10 次。', reqType: 'clicks', reqVal: 10, unlocked: false, bonus: '+2% 點擊收益' },
+      { id: 'click_100', title: '手沖狂熱者', desc: '手動點擊沖煮 100 次。', reqType: 'clicks', reqVal: 100, unlocked: false, bonus: '+5% 點擊收益' },
+      { id: 'money_1k', title: '第一桶金', desc: '累計營收超過 $1,000。', reqType: 'earned', reqVal: 1000, unlocked: false, bonus: '知名度 +5' },
+      { id: 'money_100k', title: '名揚四海', desc: '累計營收超過 $100,000。', reqType: 'earned', reqVal: 100000, unlocked: false, bonus: '知名度 +20' },
+      { id: 'staff_5', title: '店長風範', desc: '擁有至少 5 位兼職或自動設備。', reqType: 'facilities', reqVal: 5, unlocked: false, bonus: '+5% 自動收益' },
+      { id: 'all_menu', title: '品味大師', desc: '研發解鎖全部 5 款咖啡特調。', reqType: 'menu', reqVal: 5, unlocked: false, bonus: '全店利潤 +10%' }
+    ];
+
+    // 隨機突發事件庫
+    const RANDOM_EVENTS = [
+      {
+        id: 'influencer',
+        title: '美食百萬網紅打卡！',
+        desc: '著名美食Youtuber在IG限動盛讚店內手沖，排隊人潮暴增！',
+        icon: '📸',
+        duration: 25,
+        type: 'buff_click',
+        multiplier: 3,
+        btnText: '提供特製拉花 (點擊收益x3)'
+      },
+      {
+        id: 'coffee_fair',
+        title: '城市咖啡節熱烈開跑',
+        desc: '全城咖啡愛好者蜂擁而至，顧客點單意願空前高漲！',
+        icon: '🎪',
+        duration: 30,
+        type: 'buff_cps',
+        multiplier: 2,
+        btnText: '加開外帶窗口 (每秒產出x2)'
+      },
+      {
+        id: 'generous_guest',
+        title: '神秘品味富豪包場',
+        desc: '一位神秘客人非常喜愛今天的莊園豆，直接留下一大筆慷慨小費！',
+        icon: '💎',
+        duration: 15,
+        type: 'instant_cash',
+        amountCalc: (state) => Math.max(200, Math.floor(calculateCPS(state) * 45 + calculateCPC(state) * 20)),
+        btnText: '親切收下小費'
+      }
+    ];
+
+    // 店鋪等級設定
+    const SHOP_LEVELS = [
+      { level: 1, title: '街角手沖攤', minFame: 0 },
+      { level: 2, title: '巷弄文青小店', minFame: 30 },
+      { level: 3, title: '人氣精品名店', minFame: 100 },
+      { level: 4, title: '都會指標烘豆坊', minFame: 250 },
+      { level: 5, title: '國際莊園咖啡館', minFame: 600 }
+    ];
+
+    // 玩家狀態
+    let gameState = {
+      money: 0,
+      totalEarned: 0,
+      clickCount: 0,
+      fame: 10,
+      satisfaction: 98.5,
+      facilities: {},
+      menu: {},
+      decor: {},
+      achievements: {},
+      lastSaveTime: Date.now()
+    };
+
+    // 運行時臨時狀態
+    let runtime = {
+      activeBuff: null,      // { type, multiplier, endsAt }
+      currentEvent: null,
+      eventTimeoutId: null
+    };
+
+    /**
+     * 初始化與預設數據載入
+     */
+    function initGameState() {
+      FACILITIES_DATA.forEach(f => {
+        gameState.facilities[f.id] = f.count;
+      });
+      MENU_DATA.forEach(m => {
+        gameState.menu[m.id] = m.unlocked;
+      });
+      DECOR_DATA.forEach(d => {
+        gameState.decor[d.id] = d.purchased;
+      });
+      ACHIEVEMENTS_DATA.forEach(a => {
+        gameState.achievements[a.id] = a.unlocked;
+      });
+    }
+
+    /**
+     * 數值計算公式
+     */
+    // 獲取目前最高階的咖啡品項
+    function getCurrentDrink() {
+      for (let i = MENU_DATA.length - 1; i >= 0; i--) {
+        const item = MENU_DATA[i];
+        if (gameState.menu[item.id]) {
+          return item;
+        }
+      }
+      return MENU_DATA[0];
+    }
+
+    // 計算店鋪裝潢倍率
+    function getDecorMultiplier() {
+      let mult = 1.0;
+      DECOR_DATA.forEach(d => {
+        if (gameState.decor[d.id]) {
+          mult += d.multiplier;
+        }
+      });
+      return mult;
+    }
+
+    // 計算單次點擊基礎價值 (CPC)
+    function calculateCPC(state = gameState) {
+      const currentDrink = getCurrentDrink();
+      let cpc = currentDrink.clickPower;
+
+      // 裝潢加成
+      cpc *= getDecorMultiplier();
+
+      // 成就加成
+      if (state.achievements['click_10']) cpc *= 1.02;
+      if (state.achievements['click_100']) cpc *= 1.05;
+      if (state.achievements['all_menu']) cpc *= 1.10;
+
+      // 突發事件加成
+      if (runtime.activeBuff && runtime.activeBuff.type === 'buff_click') {
+        cpc *= runtime.activeBuff.multiplier;
+      }
+
+      return Math.max(1, Math.round(cpc * 10) / 10);
+    }
+
+    // 計算每秒自動收益 (CPS)
+    function calculateCPS(state = gameState) {
+      let baseCps = 0;
+      FACILITIES_DATA.forEach(f => {
+        const count = state.facilities[f.id] || 0;
+        baseCps += count * f.baseCps;
+      });
+
+      // 裝潢倍率
+      let cps = baseCps * getDecorMultiplier();
+
+      // 成就加成
+      if (state.achievements['staff_5']) cps *= 1.05;
+      if (state.achievements['all_menu']) cps *= 1.10;
+
+      // 知名度與顧客滿意度加成 (每10點知名度提升1%營收)
+      const fameBonus = 1 + (state.fame * 0.005);
+      cps *= fameBonus;
+
+      // 突發事件加成
+      if (runtime.activeBuff && runtime.activeBuff.type === 'buff_cps') {
+        cps *= runtime.activeBuff.multiplier;
+      }
+
+      return Math.round(cps * 10) / 10;
+    }
+
+    // 計算設施動態成本 (指數遞增: cost = base * 1.15^count)
+    function getFacilityCost(facilityId) {
+      const item = FACILITIES_DATA.find(f => f.id === facilityId);
+      const count = gameState.facilities[facilityId] || 0;
+      return Math.floor(item.baseCost * Math.pow(1.15, count));
+    }
+
+    // 格式化貨幣顯示
+    function fmt(val) {
+      if (val >= 1e9) return '$' + (val / 1e9).toFixed(2) + 'B';
+      if (val >= 1e6) return '$' + (val / 1e6).toFixed(2) + 'M';
+      if (val >= 1e4) return '$' + (val / 1e3).toFixed(1) + 'k';
+      return '$' + Math.floor(val).toLocaleString();
+    }
+
+    /**
+     * UI 渲染與構建
+     */
+    function renderFacilities() {
+      const container = document.getElementById('facilities-list');
+      container.innerHTML = '';
+
+      let totalStaff = 0;
+
+      FACILITIES_DATA.forEach(f => {
+        const count = gameState.facilities[f.id] || 0;
+        totalStaff += count;
+        const cost = getFacilityCost(f.id);
+        const canAfford = gameState.money >= cost;
+
+        const card = document.createElement('div');
+        card.className = `p-3.5 rounded-2xl border transition-all duration-200 flex items-center justify-between gap-3 ${
+          canAfford 
+            ? 'bg-[#271b13] border-[#4f3521] hover:border-[#845a39]' 
+            : 'bg-[#1b130e] border-[#312015] opacity-75'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center space-x-3 min-w-0">
+            <div class="w-11 h-11 rounded-xl bg-[#362316] border border-[#543823] flex items-center justify-center text-2xl shrink-0">
+              ${f.icon}
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <h4 class="text-sm font-bold text-[#eed2b3] truncate">${f.name}</h4>
+                <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-[#3d2719] text-[#e5b986] border border-[#583924]">
+                  ×${count}
+                </span>
+              </div>
+              <p class="text-[11px] text-[#9c897a] truncate mt-0.5">${f.desc}</p>
+              <div class="text-[11px] text-emerald-400 font-medium mt-1">產出: +${(f.baseCps * getDecorMultiplier()).toFixed(1)}/s</div>
+            </div>
+          </div>
+          <button 
+            onclick="buyFacility('${f.id}')" 
+            class="px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 active:scale-95 flex flex-col items-center justify-center ${
+              canAfford
+                ? 'bg-gradient-to-r from-[#c28e5c] to-[#996434] text-stone-950 hover:brightness-110 shadow-md'
+                : 'bg-[#312217] text-[#6d5747] cursor-not-allowed border border-[#402a1b]'
+            }"
+            ${!canAfford ? 'disabled' : ''}
+          >
+            <span>擴建</span>
+            <span class="text-[10px] font-mono mt-0.5">${fmt(cost)}</span>
+          </button>
+        `;
+        container.appendChild(card);
+      });
+
+      document.getElementById('staff-badge').textContent = totalStaff;
+    }
+
+    function renderMenu() {
+      const container = document.getElementById('menu-list');
+      container.innerHTML = '';
+
+      MENU_DATA.forEach(m => {
+        const isUnlocked = gameState.menu[m.id];
+        const canAfford = gameState.money >= m.cost;
+
+        const card = document.createElement('div');
+        card.className = `p-3.5 rounded-2xl border transition-all duration-200 flex items-center justify-between gap-3 ${
+          isUnlocked 
+            ? 'bg-[#291e16] border-amber-800/40' 
+            : canAfford 
+              ? 'bg-[#221710] border-[#4a3220]' 
+              : 'bg-[#18110c] border-[#291b12] opacity-70'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center space-x-3 min-w-0">
+            <div class="w-11 h-11 rounded-xl bg-[#362316] border border-[#543823] flex items-center justify-center text-2xl shrink-0">
+              ${m.icon}
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <h4 class="text-sm font-bold text-[#eed2b3] truncate">${m.name}</h4>
+                ${isUnlocked ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">已供應</span>' : ''}
+              </div>
+              <p class="text-[11px] text-[#9c897a] truncate mt-0.5">${m.note}</p>
+              <div class="text-[11px] text-amber-300 font-medium mt-1">單次點擊萃取: +$${m.clickPower}</div>
+            </div>
+          </div>
+          ${
+            isUnlocked
+              ? '<span class="text-xs font-bold text-[#bca188] px-3 py-2 bg-[#36261b] rounded-xl border border-[#4e3626]">供應中</span>'
+              : `<button 
+                  onclick="unlockMenuItem('${m.id}')"
+                  class="px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 active:scale-95 ${
+                    canAfford
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 hover:brightness-110 shadow-md'
+                      : 'bg-[#2f2015] text-[#6d5747] cursor-not-allowed border border-[#3e291b]'
+                  }"
+                  ${!canAfford ? 'disabled' : ''}
+                >
+                  研發 (${fmt(m.cost)})
+                </button>`
+          }
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderDecor() {
+      const container = document.getElementById('decor-list');
+      container.innerHTML = '';
+
+      DECOR_DATA.forEach(d => {
+        const isPurchased = gameState.decor[d.id];
+        const canAfford = gameState.money >= d.cost;
+
+        const card = document.createElement('div');
+        card.className = `p-3.5 rounded-2xl border transition-all duration-200 flex items-center justify-between gap-3 ${
+          isPurchased 
+            ? 'bg-[#261c14] border-indigo-900/40' 
+            : canAfford 
+              ? 'bg-[#21160f] border-[#442e1d]' 
+              : 'bg-[#18100b] border-[#291b12] opacity-70'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center space-x-3 min-w-0">
+            <div class="w-11 h-11 rounded-xl bg-[#362316] border border-[#543823] flex items-center justify-center text-2xl shrink-0">
+              ${d.icon}
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <h4 class="text-sm font-bold text-[#eed2b3] truncate">${d.name}</h4>
+                ${isPurchased ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800">已佈置</span>' : ''}
+              </div>
+              <p class="text-[11px] text-cyan-300 mt-0.5">知名度 +${d.fameBonus} &bull; 全店收益 +${Math.round(d.multiplier * 100)}%</p>
+            </div>
+          </div>
+          ${
+            isPurchased
+              ? '<span class="text-xs font-bold text-[#8fa3b7] px-3 py-2 bg-[#1b252f] rounded-xl border border-[#2b3c4d]">已擁有</span>'
+              : `<button 
+                  onclick="buyDecor('${d.id}')"
+                  class="px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 active:scale-95 ${
+                    canAfford
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:brightness-110 shadow-md'
+                      : 'bg-[#2b1f16] text-[#6d5747] cursor-not-allowed border border-[#3e291b]'
+                  }"
+                  ${!canAfford ? 'disabled' : ''}
+                >
+                  裝潢 (${fmt(d.cost)})
+                </button>`
+          }
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderAchievements() {
+      const container = document.getElementById('achievements-list');
+      container.innerHTML = '';
+
+      ACHIEVEMENTS_DATA.forEach(a => {
+        const isUnlocked = gameState.achievements[a.id];
+
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-2xl border transition-all duration-200 flex items-start gap-3 ${
+          isUnlocked 
+            ? 'bg-[#292015] border-amber-600/40 text-amber-100 shadow-md' 
+            : 'bg-[#18110c] border-[#291b12] text-[#715c4d] opacity-60'
+        }`;
+
+        card.innerHTML = `
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${
+            isUnlocked ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-[#271a11] text-[#554234]'
+          }">
+            ${isUnlocked ? '🏆' : '🔒'}
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <h5 class="text-xs font-bold ${isUnlocked ? 'text-[#f0d4b8]' : 'text-[#846f5e]'}">${a.title}</h5>
+              ${isUnlocked ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">達成</span>' : ''}
+            </div>
+            <p class="text-[10px] mt-0.5 leading-snug">${a.desc}</p>
+            <div class="text-[10px] font-medium text-emerald-400 mt-1">獎勵: ${a.bonus}</div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // 更新頂部與核心看板指標
+    function updateHUD() {
+      const currentCps = calculateCPS();
+      const currentCpc = calculateCPC();
+
+      document.getElementById('money-stat').textContent = fmt(gameState.money);
+      document.getElementById('total-earned').textContent = fmt(gameState.totalEarned);
+      document.getElementById('cps-stat').textContent = `+${fmt(currentCps)}/s`;
+      document.getElementById('cpc-stat').textContent = `+${fmt(currentCpc)}`;
+      document.getElementById('fame-stat').textContent = gameState.fame;
+      document.getElementById('fame-mult').textContent = (1 + (gameState.fame * 0.005)).toFixed(2);
+      document.getElementById('click-count').textContent = `${gameState.clickCount.toLocaleString()} 次`;
+      document.getElementById('current-drink-name').textContent = getCurrentDrink().name;
+
+      // 裝潢與好評率加成
+      const decorMultPercent = Math.round((getDecorMultiplier() - 1) * 100);
+      document.getElementById('buff-indicator').textContent = `+${decorMultPercent}%`;
+
+      // 店面稱號與等級
+      let currentShopLevel = SHOP_LEVELS[0];
+      for (let i = SHOP_LEVELS.length - 1; i >= 0; i--) {
+        if (gameState.fame >= SHOP_LEVELS[i].minFame) {
+          currentShopLevel = SHOP_LEVELS[i];
+          break;
+        }
+      }
+      document.getElementById('shop-level').textContent = currentShopLevel.level;
+      document.getElementById('shop-title').textContent = currentShopLevel.title;
+
+      // 知名度進度條
+      const nextLevel = SHOP_LEVELS.find(l => l.level === currentShopLevel.level + 1);
+      if (nextLevel) {
+        const progress = Math.min(100, Math.floor((gameState.fame / nextLevel.minFame) * 100));
+        document.getElementById('fame-bar').style.width = `${progress}%`;
+      } else {
+        document.getElementById('fame-bar').style.width = `100%`;
+      }
+
+      // 檢查成就
+      checkAchievements();
+    }
+
+    // 寫入系統日誌
+    function logMessage(msg, tag = '營運') {
+      const container = document.getElementById('logs-container');
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      
+      const item = document.createElement('div');
+      item.className = 'text-[#baa797] animate-fadeIn';
+      item.innerHTML = `<span class="text-[#6d5748]">[${timeStr}]</span> <span class="text-[#d8a87b] font-medium">[${tag}]</span> ${msg}`;
+      
+      container.prepend(item);
+
+      // 限制日誌條數
+      if (container.children.length > 30) {
+        container.removeChild(container.lastChild);
+      }
+    }
+
+    /**
+     * 玩家互動邏輯
+     */
+    // 點擊泡咖啡
+    function brewCoffee(e) {
+      const cpc = calculateCPC();
+      gameState.money += cpc;
+      gameState.totalEarned += cpc;
+      gameState.clickCount += 1;
+
+      // 生成浮動特效文字
+      showFloatingText(e, `+$${cpc}`);
+
+      updateHUD();
+      renderFacilities();
+      renderMenu();
+      renderDecor();
+    }
+
+    function showFloatingText(e, text) {
+      const container = document.getElementById('float-container');
+      const floatEl = document.createElement('div');
+      floatEl.className = 'float-text';
+      floatEl.textContent = text;
+
+      // 微調隨機位置避免文字完全重合
+      const randomX = (Math.random() - 0.5) * 50;
+      const randomY = (Math.random() - 0.5) * 20;
+
+      floatEl.style.transform = `translate(${randomX}px, ${randomY}px)`;
+      container.appendChild(floatEl);
+
+      setTimeout(() => {
+        if (floatEl.parentNode) {
+          floatEl.parentNode.removeChild(floatEl);
+        }
+      }, 850);
+    }
+
+    // 購買設施
+    window.buyFacility = function(id) {
+      const cost = getFacilityCost(id);
+      if (gameState.money >= cost) {
+        gameState.money -= cost;
+        gameState.facilities[id] = (gameState.facilities[id] || 0) + 1;
+        const item = FACILITIES_DATA.find(f => f.id === id);
+        logMessage(`添購擴建了【${item.name}】，目前擁有 ${gameState.facilities[id]} 臺/位。`);
+        updateHUD();
+        renderFacilities();
+        renderMenu();
+        renderDecor();
+      }
+    };
+
+    // 解鎖特調咖啡
+    window.unlockMenuItem = function(id) {
+      const item = MENU_DATA.find(m => m.id === id);
+      if (!gameState.menu[id] && gameState.money >= item.cost) {
+        gameState.money -= item.cost;
+        gameState.menu[id] = true;
+        gameState.fame += 10;
+        logMessage(`全新特調研發成功！【${item.name}】正式加入主菜單！知名度 +10。`, '特調');
+        updateHUD();
+        renderMenu();
+        renderFacilities();
+        renderDecor();
+      }
+    };
+
+    // 購買裝潢
+    window.buyDecor = function(id) {
+      const decor = DECOR_DATA.find(d => d.id === id);
+      if (!gameState.decor[id] && gameState.money >= decor.cost) {
+        gameState.money -= decor.cost;
+        gameState.decor[id] = true;
+        gameState.fame += decor.fameBonus;
+        logMessage(`升級店鋪裝潢：【${decor.name}】！知名度 +${decor.fameBonus}，全店營收提升！`, '裝潢');
+        updateHUD();
+        renderDecor();
+        renderFacilities();
+        renderMenu();
+      }
+    };
+
+    // 檢查並觸發成就
+    function checkAchievements() {
+      ACHIEVEMENTS_DATA.forEach(a => {
+        if (!gameState.achievements[a.id]) {
+          let met = false;
+          if (a.reqType === 'clicks' && gameState.clickCount >= a.reqVal) met = true;
+          if (a.reqType === 'earned' && gameState.totalEarned >= a.reqVal) met = true;
+          if (a.reqType === 'facilities') {
+            let total = 0;
+            Object.values(gameState.facilities).forEach(v => total += v);
+            if (total >= a.reqVal) met = true;
+          }
+          if (a.reqType === 'menu') {
+            let unlockedMenuCount = Object.values(gameState.menu).filter(Boolean).length;
+            if (unlockedMenuCount >= a.reqVal) met = true;
+          }
+
+          if (met) {
+            gameState.achievements[a.id] = true;
+            if (a.id === 'money_1k') gameState.fame += 5;
+            if (a.id === 'money_100k') gameState.fame += 20;
+            logMessage(`解鎖成就：【${a.title}】！獲得獎勵：${a.bonus}`, '成就');
+            renderAchievements();
+          }
+        }
+      });
+    }
+
+    /**
+     * 隨機事件引擎
+     */
+    function triggerRandomEvent() {
+      if (runtime.currentEvent || runtime.activeBuff) return;
+
+      // 隨機挑選事件
+      const evt = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+      runtime.currentEvent = evt;
+
+      const banner = document.getElementById('event-banner');
+      const titleEl = document.getElementById('event-title');
+      const descEl = document.getElementById('event-desc');
+      const iconEl = document.getElementById('event-icon');
+      const actionBtn = document.getElementById('event-action-btn');
+      const timerEl = document.getElementById('event-timer');
+
+      iconEl.textContent = evt.icon;
+      titleEl.textContent = evt.title;
+      descEl.textContent = evt.desc;
+      actionBtn.textContent = evt.btnText;
+
+      banner.classList.remove('hidden');
+
+      let timeLeft = evt.duration;
+      timerEl.textContent = `${timeLeft}s`;
+
+      const countdown = setInterval(() => {
+        timeLeft -= 1;
+        timerEl.textContent = `${timeLeft}s`;
+        if (timeLeft <= 0 || !runtime.currentEvent) {
+          clearInterval(countdown);
+          dismissEvent();
+        }
+      }, 1000);
+
+      actionBtn.onclick = () => {
+        clearInterval(countdown);
+        handleEventAction(evt);
+      };
+    }
+
+    function handleEventAction(evt) {
+      if (evt.type === 'buff_click' || evt.type === 'buff_cps') {
+        runtime.activeBuff = {
+          type: evt.type,
+          multiplier: evt.multiplier,
+          endsAt: Date.now() + (evt.duration * 1000)
+        };
+        logMessage(`啟用活動增益：${evt.title}（效果持續 ${evt.duration} 秒）！`, '突發');
+      } else if (evt.type === 'instant_cash') {
+        const cash = evt.amountCalc(gameState);
+        gameState.money += cash;
+        gameState.totalEarned += cash;
+        logMessage(`獲得神秘貴賓小費贊助 +${fmt(cash)}！`, '贊助');
+      }
+      dismissEvent();
+      updateHUD();
+      renderFacilities();
+      renderMenu();
+    }
+
+    function dismissEvent() {
+      runtime.currentEvent = null;
+      document.getElementById('event-banner').classList.add('hidden');
+    }
+
+    /**
+     * 遊戲存檔與離線機制 (localStorage)
+     */
+    function saveGame() {
+      gameState.lastSaveTime = Date.now();
+      localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+    }
+
+    function loadGame() {
+      const saved = localStorage.getItem(SAVE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          gameState = Object.assign(gameState, parsed);
+          // 確保新加入的陣列項目存在
+          FACILITIES_DATA.forEach(f => {
+            if (gameState.facilities[f.id] === undefined) gameState.facilities[f.id] = 0;
+          });
+          MENU_DATA.forEach(m => {
+            if (gameState.menu[m.id] === undefined) gameState.menu[m.id] = m.unlocked;
+          });
+          DECOR_DATA.forEach(d => {
+            if (gameState.decor[d.id] === undefined) gameState.decor[d.id] = false;
+          });
+          ACHIEVEMENTS_DATA.forEach(a => {
+            if (gameState.achievements[a.id] === undefined) gameState.achievements[a.id] = false;
+          });
+          logMessage('已從雲端記憶體加載您上次的咖啡廳經營進度。', '系統');
+        } catch (e) {
+          console.error("存檔損毀，重置狀態", e);
+        }
+      }
+    }
+
+    // 計算離線收益
+    function checkOfflineProgress() {
+      const now = Date.now();
+      const lastSave = gameState.lastSaveTime || now;
+      const elapsedSeconds = Math.floor((now - lastSave) / 1000);
+
+      // 超過 10 秒才結算離線
+      if (elapsedSeconds >= 10) {
+        const cps = calculateCPS();
+        if (cps > 0) {
+          // 離線最高累計上限 12 小時 (43200 秒)
+          const validSeconds = Math.min(elapsedSeconds, 43200);
+          const earned = Math.floor(cps * validSeconds * 0.85); // 85% 離線員工效率
+
+          if (earned > 0) {
+            const hours = Math.floor(validSeconds / 3600);
+            const minutes = Math.floor((validSeconds % 3600) / 60);
+            const seconds = validSeconds % 60;
+            const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            document.getElementById('offline-time').textContent = timeStr;
+            document.getElementById('offline-earnings').textContent = `+${fmt(earned)}`;
+            document.getElementById('welcome-modal').classList.remove('hidden');
+
+            document.getElementById('claim-offline-btn').onclick = () => {
+              gameState.money += earned;
+              gameState.totalEarned += earned;
+              document.getElementById('welcome-modal').classList.add('hidden');
+              logMessage(`領取了離線經營收益 ${fmt(earned)}！`, '營業');
+              updateHUD();
+              renderFacilities();
+              renderMenu();
+              renderDecor();
+              saveGame();
+            };
+          }
+        }
+      }
+    }
+
+    /**
+     * 主遊戲迴圈 (Game Loop)
+     */
+    let lastTick = performance.now();
+    function gameLoop(now) {
+      const delta = (now - lastTick) / 1000;
+      lastTick = now;
+
+      // 檢查 Buff 倒數超時
+      if (runtime.activeBuff && Date.now() > runtime.activeBuff.endsAt) {
+        runtime.activeBuff = null;
+        logMessage('突發熱潮活動已平息，收益恢復正常水準。', '活動');
+        updateHUD();
+        renderFacilities();
+      }
+
+      // 自動累加 CPS 收益
+      const currentCps = calculateCPS();
+      if (currentCps > 0) {
+        const increment = currentCps * delta;
+        gameState.money += increment;
+        gameState.totalEarned += increment;
+        updateHUD();
+
+        // 刷新按鈕可購狀態 (不需要每一幀重建，只刷新數值)
+        refreshPurchaseButtons();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // 輕量化更新按鈕 disabled 狀態，保證操作絲滑
+    function refreshPurchaseButtons() {
+      FACILITIES_DATA.forEach(f => {
+        const cost = getFacilityCost(f.id);
+        // 如果資金在臨界點附近則重繪列表
+      });
+    }
+
+    /**
+     * DOM 事件綁定與啟動
+     */
+    window.addEventListener('DOMContentLoaded', () => {
+      initGameState();
+      loadGame();
+
+      // 綁定手動萃取按鈕
+      const brewBtn = document.getElementById('coffee-brew-btn');
+      brewBtn.addEventListener('click', (e) => brewCoffee(e));
+
+      // 分頁切換
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          tabBtns.forEach(b => {
+            b.classList.remove('active', 'bg-[#c28e5c]', 'text-stone-950');
+            b.classList.add('text-[#ab9787]');
+          });
+          btn.classList.add('active', 'bg-[#c28e5c]', 'text-stone-950');
+          btn.classList.remove('text-[#ab9787]');
+
+          const targetTab = btn.getAttribute('data-tab');
+          document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.add('hidden'));
+          document.getElementById(targetTab).classList.remove('hidden');
+        });
+      });
+
+      // 手動保存
+      document.getElementById('btn-save').addEventListener('click', () => {
+        saveGame();
+        const btn = document.getElementById('btn-save');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span>✅</span> <span>已保存!</span>';
+        setTimeout(() => btn.innerHTML = orig, 1200);
+      });
+
+      // 重置進度
+      document.getElementById('btn-reset').addEventListener('click', () => {
+        const sure = window.confirm('確定要結束這間咖啡廳並重新創業嗎？所有進度將被歸零！');
+        if (sure) {
+          localStorage.removeItem(SAVE_KEY);
+          location.reload();
+        }
+      });
+
+      // 初次畫面渲染
+      renderFacilities();
+      renderMenu();
+      renderDecor();
+      renderAchievements();
+      updateHUD();
+
+      // 離線收益檢測
+      checkOfflineProgress();
+
+      // 定期自動存檔 (每 10 秒)
+      setInterval(saveGame, 10000);
+
+      // 定期隨機事件觸發 (每 45 秒嘗試一次)
+      setInterval(() => {
+        if (Math.random() < 0.6) {
+          triggerRandomEvent();
+        }
+      }, 45000);
+
+      // 啟動主動態迴圈
+      requestAnimationFrame(gameLoop);
+    });
+  </script>
+</body>
+</html>
